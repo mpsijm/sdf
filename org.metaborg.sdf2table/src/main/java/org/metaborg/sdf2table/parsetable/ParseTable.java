@@ -1,34 +1,14 @@
 package org.metaborg.sdf2table.parsetable;
 
 import java.io.Serializable;
-import java.util.List;
-import java.util.Map;
-import java.util.Queue;
-import java.util.Set;
+import java.util.*;
 
 import org.metaborg.parsetable.IParseTable;
 import org.metaborg.parsetable.IState;
-import org.metaborg.sdf2table.deepconflicts.Context;
-import org.metaborg.sdf2table.deepconflicts.ContextPosition;
-import org.metaborg.sdf2table.deepconflicts.ContextType;
-import org.metaborg.sdf2table.deepconflicts.ContextualProduction;
-import org.metaborg.sdf2table.deepconflicts.ContextualSymbol;
-import org.metaborg.sdf2table.deepconflicts.DeepConflictsAnalyzer;
-import org.metaborg.sdf2table.grammar.GeneralAttribute;
-import org.metaborg.sdf2table.grammar.IPriority;
-import org.metaborg.sdf2table.grammar.IProduction;
-import org.metaborg.sdf2table.grammar.NormGrammar;
-import org.metaborg.sdf2table.grammar.Priority;
-import org.metaborg.sdf2table.grammar.Symbol;
+import org.metaborg.sdf2table.deepconflicts.*;
+import org.metaborg.sdf2table.grammar.*;
 
-import com.google.common.collect.BiMap;
-import com.google.common.collect.HashBiMap;
-import com.google.common.collect.HashMultimap;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
-import com.google.common.collect.Queues;
-import com.google.common.collect.SetMultimap;
-import com.google.common.collect.Sets;
+import com.google.common.collect.*;
 
 public class ParseTable implements IParseTable, Serializable {
 
@@ -94,7 +74,7 @@ public class ParseTable implements IParseTable, Serializable {
 
         // calculate deep priority conflicts based on current priorities
         // and generate contextual productions
-        if (solveDeepConflicts) {
+        if(solveDeepConflicts) {
             final DeepConflictsAnalyzer analysis = DeepConflictsAnalyzer.fromParseTable(this);
             analysis.patchParseTable();
 
@@ -450,7 +430,7 @@ public class ParseTable implements IParseTable, Serializable {
             deriveContextualProductions();
 
             for(IProduction p : grammar.getUniqueProductionMapping().values()) {
-                if (grammar.getProdContextualProdMapping().containsKey(p)) {
+                if(grammar.getProdContextualProdMapping().containsKey(p)) {
                     labels.inverse().put(labels.get(p), grammar.getProdContextualProdMapping().get(p));
                 }
             }
@@ -472,7 +452,7 @@ public class ParseTable implements IParseTable, Serializable {
             }
 
             for(IProduction p : grammar.getUniqueProductionMapping().values()) {
-                if (grammar.getProdContextualProdMapping().containsKey(p)) {
+                if(grammar.getProdContextualProdMapping().containsKey(p)) {
                     labels.inverse().put(labels.get(p), grammar.getProdContextualProdMapping().get(p));
                 }
             }
@@ -480,6 +460,10 @@ public class ParseTable implements IParseTable, Serializable {
     }
 
     private void createJSGLRParseTableProductions(BiMap<IProduction, Integer> labels) {
+        Set<Symbol> fragileSymbols = new HashSet<>();
+        for(IProduction productionOnPriority : grammar.getProductionsOnPriorities()) {
+            fragileSymbols.add(productionOnPriority.leftHand());
+        }
         for(int i = 0; i < labels.size(); i++) {
             IProduction p = labels.inverse().get(i + FIRST_PRODUCTION_LABEL);
             IProduction orig_p = p;
@@ -487,9 +471,11 @@ public class ParseTable implements IParseTable, Serializable {
                 orig_p = ((ContextualProduction) p).getOrigProduction();
             }
 
-            ParseTableProduction prod = new ParseTableProduction(i + FIRST_PRODUCTION_LABEL, p,
-                grammar.getProductionAttributesMapping().get(orig_p), leftmostContextsMapping,
-                rightmostContextsMapping);
+            Set<IAttribute> attrs = new HashSet<>(grammar.getProductionAttributesMapping().get(orig_p));
+            if(fragileSymbols.contains(orig_p.leftHand()))
+                attrs.add(new FragileAttribute());
+            ParseTableProduction prod = new ParseTableProduction(i + FIRST_PRODUCTION_LABEL, p, attrs,
+                leftmostContextsMapping, rightmostContextsMapping);
             productions.add(prod);
             productionsMapping.put(p, prod);
         }
@@ -520,8 +506,10 @@ public class ParseTable implements IParseTable, Serializable {
                 int labelP = productionLabels.get(p);
 
                 // generate new productions for deep contexts
-                Context deepLeft_ctx = new Context(labelP, ContextType.DEEP, ContextPosition.LEFTMOST, false, leftmostContextsMapping, rightmostContextsMapping);
-                Context deepRight_ctx = new Context(labelP, ContextType.DEEP, ContextPosition.RIGHTMOST, false, leftmostContextsMapping, rightmostContextsMapping);
+                Context deepLeft_ctx = new Context(labelP, ContextType.DEEP, ContextPosition.LEFTMOST, false,
+                    leftmostContextsMapping, rightmostContextsMapping);
+                Context deepRight_ctx = new Context(labelP, ContextType.DEEP, ContextPosition.RIGHTMOST, false,
+                    leftmostContextsMapping, rightmostContextsMapping);
                 if(ctx_s.getContexts().contains(deepLeft_ctx) || ctx_s.getContexts().contains(deepRight_ctx)) {
                     continue;
                 }

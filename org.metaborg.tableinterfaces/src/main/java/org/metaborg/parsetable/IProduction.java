@@ -49,4 +49,5 @@ public interface IProduction {
     
     boolean isLongestMatch();
 
+    boolean isFragile();
 }

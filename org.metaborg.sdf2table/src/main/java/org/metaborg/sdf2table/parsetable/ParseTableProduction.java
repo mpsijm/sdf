@@ -7,26 +7,7 @@ import java.util.Set;
 
 import org.metaborg.parsetable.ProductionType;
 import org.metaborg.sdf2table.deepconflicts.ContextualProduction;
-import org.metaborg.sdf2table.grammar.AltSymbol;
-import org.metaborg.sdf2table.grammar.CharacterClass;
-import org.metaborg.sdf2table.grammar.ConstructorAttribute;
-import org.metaborg.sdf2table.grammar.ContextFreeSymbol;
-import org.metaborg.sdf2table.grammar.GeneralAttribute;
-import org.metaborg.sdf2table.grammar.IAttribute;
-import org.metaborg.sdf2table.grammar.IProduction;
-import org.metaborg.sdf2table.grammar.IterSepSymbol;
-import org.metaborg.sdf2table.grammar.IterStarSepSymbol;
-import org.metaborg.sdf2table.grammar.IterStarSymbol;
-import org.metaborg.sdf2table.grammar.IterSymbol;
-import org.metaborg.sdf2table.grammar.Layout;
-import org.metaborg.sdf2table.grammar.LayoutConstraintAttribute;
-import org.metaborg.sdf2table.grammar.LexicalSymbol;
-import org.metaborg.sdf2table.grammar.OptionalSymbol;
-import org.metaborg.sdf2table.grammar.SequenceSymbol;
-import org.metaborg.sdf2table.grammar.Sort;
-import org.metaborg.sdf2table.grammar.StartSymbol;
-import org.metaborg.sdf2table.grammar.Symbol;
-import org.metaborg.sdf2table.grammar.TermAttribute;
+import org.metaborg.sdf2table.grammar.*;
 import org.metaborg.sdf2table.grammar.layoutconstraints.IgnoreLayoutConstraint;
 import org.metaborg.sdf2table.io.ParseTableIO;
 
@@ -56,6 +37,7 @@ public class ParseTableProduction implements org.metaborg.parsetable.IProduction
     private final Set<LayoutConstraintAttribute> layoutConstraints;
     private final boolean isIgnoreLayoutConstraint;
     private final boolean isLongestMatch;
+    private final boolean isFragile;
 
     private final long cachedContextBitmapL;
     private final long cachedContextBitmapR;
@@ -87,6 +69,7 @@ public class ParseTableProduction implements org.metaborg.parsetable.IProduction
         boolean completionOrRecovery = false;
         ConstructorAttribute c = null;
         ProductionType t = ProductionType.NO_TYPE;
+        boolean isFragile = false;
         for(IAttribute attr : attrs) {
             if(attr instanceof ConstructorAttribute) {
                 c = (ConstructorAttribute) attr;
@@ -107,10 +90,14 @@ public class ParseTableProduction implements org.metaborg.parsetable.IProduction
                     t = ProductionType.AVOID;
                 }
             }
+            if(attr instanceof FragileAttribute) {
+                isFragile = true;
+            }
         }
         constructor = c;
         isCompletionOrRecovery = completionOrRecovery;
         type = t;
+        this.isFragile = isFragile;
 
         boolean isLayout = getIsLayout();
         this.isLayout = isLayout;
@@ -424,4 +411,7 @@ public class ParseTableProduction implements org.metaborg.parsetable.IProduction
         return isLongestMatch;
     }
 
+    @Override public boolean isFragile() {
+        return isFragile;
+    }
 }
