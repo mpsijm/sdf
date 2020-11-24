@@ -122,6 +122,7 @@ public class ParseTable implements IParseTable, Serializable {
 
         if(!config.isDynamic()) {
             State s0 = new State(initialProduction, this);
+            s0.closure();
             stateQueue.add(s0);
             processStateQueue();
             cleanupTable();
@@ -1146,7 +1147,6 @@ public class ParseTable implements IParseTable, Serializable {
     }
 
     private void processState(State state) {
-        state.closure();
         state.doShift();
         state.doReduces();
         state.calculateActionsForCharacter();

@@ -206,6 +206,7 @@ public class State implements IState, Comparable<State>, Serializable {
             gotoState = pt.kernelMap().get(new_kernel);
         } else {
             gotoState = new State(new_kernel, pt);
+            gotoState.closure();
             pt.stateQueue().add(gotoState);
         }
         int stateNumber = gotoState.getLabel();
