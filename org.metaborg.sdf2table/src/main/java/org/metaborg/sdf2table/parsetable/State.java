@@ -1,10 +1,7 @@
 package org.metaborg.sdf2table.parsetable;
 
 import java.io.Serializable;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import org.metaborg.parsetable.actions.IAction;
 import org.metaborg.parsetable.actions.IGoto;
@@ -214,13 +211,53 @@ public class State implements IState, Comparable<State>, Serializable {
         // set recently added shift and goto actions to new state
         for(Shift shift : new_shifts) {
             shift.setState(stateNumber);
-            this.lr_actions.put(shift.cc, shift);
+            ICharacterClass shiftCC = shift.cc;
+            List<Map.Entry<ICharacterClass, Action>> shiftActionsInSameRange = getShiftActionsInSameRange(shiftCC);
+            if(!shiftActionsInSameRange.isEmpty()) {
+                for(Map.Entry<ICharacterClass, Action> entry : shiftActionsInSameRange) {
+                    ICharacterClass intersection = entry.getKey().intersection(shiftCC);
+                    if(intersection.isEmpty())
+                        continue;
+
+                    this.lr_actions.remove(entry.getKey(), entry.getValue());
+
+                    ICharacterClass difference = entry.getKey().difference(shiftCC);
+                    if(!difference.isEmpty())
+                        this.lr_actions.put(difference, entry.getValue());
+
+                    Set<LRItem> mergedKernel = new HashSet<>();
+                    mergedKernel.addAll(gotoState.kernel);
+                    mergedKernel.addAll(pt.stateLabels().get(((Shift) entry.getValue()).getState()).kernel);
+                    State mergedState = new State(mergedKernel, pt);
+                    mergedState.closure();
+                    pt.stateQueue().add(mergedState);
+                    Shift new_shift = new Shift(intersection);
+                    new_shift.setState(mergedState.label);
+                    this.lr_actions.put(intersection, new_shift);
+
+                    shiftCC = shiftCC.difference(entry.getKey());
+                    if(shiftCC.isEmpty())
+                        break;
+                }
+            }
+            if(!shiftCC.isEmpty())
+                this.lr_actions.put(shiftCC, shift);
         }
         for(Goto g : new_gotos) {
             g.setState(stateNumber);
             this.gotos.add(g);
             this.gotosMapping.put(g.label, g);
         }
+    }
+
+    private List<Map.Entry<ICharacterClass, Action>> getShiftActionsInSameRange(ICharacterClass cc) {
+        List<Map.Entry<ICharacterClass, Action>> sameRangeActions = new ArrayList<>();
+        for(Map.Entry<ICharacterClass, Action> entry : lr_actions.entries()) {
+            if(entry.getValue() instanceof Shift && !entry.getKey().intersection(cc).isEmpty()) {
+                sameRangeActions.add(entry);
+            }
+        }
+        return sameRangeActions;
     }
 
     @Override public String toString() {
