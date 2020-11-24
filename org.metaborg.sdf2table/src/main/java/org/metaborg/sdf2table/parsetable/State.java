@@ -198,14 +198,7 @@ public class State implements IState, Comparable<State>, Serializable {
     }
 
     private void checkKernel(Set<LRItem> new_kernel, Set<Goto> new_gotos, Set<Shift> new_shifts) {
-        State gotoState;
-        if(pt.kernelMap().containsKey(new_kernel)) {
-            gotoState = pt.kernelMap().get(new_kernel);
-        } else {
-            gotoState = new State(new_kernel, pt);
-            gotoState.closure();
-            pt.stateQueue().add(gotoState);
-        }
+        State gotoState = getStateFromKernel(new_kernel);
         int stateNumber = gotoState.getLabel();
 
         // set recently added shift and goto actions to new state
@@ -228,9 +221,7 @@ public class State implements IState, Comparable<State>, Serializable {
                     Set<LRItem> mergedKernel = new HashSet<>();
                     mergedKernel.addAll(gotoState.kernel);
                     mergedKernel.addAll(pt.stateLabels().get(((Shift) entry.getValue()).getState()).kernel);
-                    State mergedState = new State(mergedKernel, pt);
-                    mergedState.closure();
-                    pt.stateQueue().add(mergedState);
+                    State mergedState = getStateFromKernel(mergedKernel);
                     Shift new_shift = new Shift(intersection);
                     new_shift.setState(mergedState.label);
                     this.lr_actions.put(intersection, new_shift);
@@ -247,6 +238,17 @@ public class State implements IState, Comparable<State>, Serializable {
             g.setState(stateNumber);
             this.gotos.add(g);
             this.gotosMapping.put(g.label, g);
+        }
+    }
+
+    private State getStateFromKernel(Set<LRItem> new_kernel) {
+        if(pt.kernelMap().containsKey(new_kernel)) {
+            return pt.kernelMap().get(new_kernel);
+        } else {
+            State newState = new State(new_kernel, pt);
+            newState.closure();
+            pt.stateQueue().add(newState);
+            return newState;
         }
     }
 
