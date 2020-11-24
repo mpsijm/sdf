@@ -185,6 +185,8 @@ class ParseTableReaderDelegate {
                 ProductionType productionType = Production.typeFromInt(toJavaIntAt(actionTermAppl, 2));
 
                 IProduction production = productions[productionId];
+                //if(production.isRecovery() || production.isCompletion())
+                //    continue;
 
                 if(actionTermAppl.getConstructor().getArity() == 3) { // Reduce without lookahead
                     action = actionsFactory.getReduce(production, productionType, arity);
@@ -208,6 +210,7 @@ class ParseTableReaderDelegate {
         }
 
         return actions;
+        //return java.util.Arrays.copyOf(actions, i);
     }
 
     private ICharacterClass[] readReduceLookaheadFollowRestriction(IStrategoTerm followRestrictionTerm)
