@@ -201,33 +201,24 @@ public class State implements IState, Comparable<State>, Serializable {
     }
 
     private void checkKernel(Set<LRItem> new_kernel, Set<Goto> new_gotos, Set<Shift> new_shifts) {
+        State gotoState;
         if(pt.kernelMap().containsKey(new_kernel)) {
-            int stateNumber = pt.kernelMap().get(new_kernel).getLabel();
-            // set recently added shift and goto actions to new state
-            for(Shift shift : new_shifts) {
-                shift.setState(stateNumber);
-
-                this.lr_actions.put(shift.cc, shift);
-                // this.lr_actions.add(new LRAction(shift.cc, shift));
-            }
-            for(Goto g : new_gotos) {
-                g.setState(stateNumber);
-                this.gotos.add(g);
-                this.gotosMapping.put(g.label, g);
-            }
+            gotoState = pt.kernelMap().get(new_kernel);
         } else {
-            State new_state = new State(new_kernel, pt);
-            for(Shift shift : new_shifts) {
-                shift.setState(new_state.getLabel());
-                this.lr_actions.put(shift.cc, shift);
-                // this.lr_actions.add(new LRAction(shift.cc, shift));
-            }
-            for(Goto g : new_gotos) {
-                g.setState(new_state.getLabel());
-                this.gotos.add(g);
-                this.gotosMapping.put(g.label, g);
-            }
-            pt.stateQueue().add(new_state);
+            gotoState = new State(new_kernel, pt);
+            pt.stateQueue().add(gotoState);
+        }
+        int stateNumber = gotoState.getLabel();
+
+        // set recently added shift and goto actions to new state
+        for(Shift shift : new_shifts) {
+            shift.setState(stateNumber);
+            this.lr_actions.put(shift.cc, shift);
+        }
+        for(Goto g : new_gotos) {
+            g.setState(stateNumber);
+            this.gotos.add(g);
+            this.gotosMapping.put(g.label, g);
         }
     }
 
