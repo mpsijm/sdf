@@ -80,7 +80,7 @@ public class NormGrammarReader {
 
         return getGrammar();
     }
-    
+
     public NormGrammar getGrammar() throws Exception {
     	// only read priority sections after reading all productions to get constructor references
         for(IStrategoAppl section : prioritySections) {
@@ -264,6 +264,8 @@ public class NormGrammarReader {
                         for(IStrategoTerm ta : talist) {
                             IAttribute attr = processAttribute(ta);
                             if(attr != null) {
+                                if("recover".equals(((GeneralAttribute) attr).getName()))
+                                    return null;
                                 attrs.add(attr);
                             }
                         }
